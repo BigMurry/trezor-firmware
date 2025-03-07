@@ -59,9 +59,9 @@ impl Trezor {
 
     pub fn ethereum_sign_typed_hash(
         &mut self,
-        path: Vec<u32>,
         domain_hash: Vec<u8>,
         message_hash: Vec<u8>,
+        path: Vec<u32>,
     ) -> Result<Signature> {
         let mut req = protos::EthereumSignTypedHash::new();
         req.address_n = path;
