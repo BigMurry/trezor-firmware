@@ -1,10 +1,8 @@
-use std::collections::BTreeMap;
-
 use super::{handle_interaction, Trezor};
 use crate::{
     error::Result,
     protos::{self, ethereum_sign_tx_eip1559::EthereumAccessList, EthereumTxRequest},
-    Error, TrezorMessage,
+    Error,
 };
 
 /// Access list item.
