@@ -1,8 +1,10 @@
+use std::collections::BTreeMap;
+
 use super::{handle_interaction, Trezor};
 use crate::{
     error::Result,
     protos::{self, ethereum_sign_tx_eip1559::EthereumAccessList, EthereumTxRequest},
-    Error,
+    Error, TrezorMessage,
 };
 
 /// Access list item.
@@ -55,6 +57,34 @@ impl Trezor {
         )?)?;
 
         Ok(signature)
+    }
+
+    pub fn ethereum_sign_typed_hash(
+        &mut self,
+        path: Vec<u32>,
+        domain_hash: Vec<u8>,
+        message_hash: Vec<u8>,
+    ) -> Result<Signature> {
+        let mut req = protos::EthereumSignTypedHash::new();
+        req.address_n = path;
+        req.set_domain_separator_hash(domain_hash);
+        req.set_message_hash(message_hash);
+
+        let sig = handle_interaction(self.call(
+            req,
+            Box::new(|_, m: protos::EthereumTypedDataSignature| {
+                let signature = m.signature();
+                if signature.len() != 65 {
+                    return Err(Error::MalformedSignature);
+                }
+                let r = signature[0..32].try_into().unwrap();
+                let s = signature[32..64].try_into().unwrap();
+                let v = signature[64] as u64;
+                Ok(Signature { r, s, v })
+            }),
+        )?)?;
+
+        Ok(sig)
     }
 
     #[allow(clippy::too_many_arguments)]
