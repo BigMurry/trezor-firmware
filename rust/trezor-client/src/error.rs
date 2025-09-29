@@ -36,6 +36,12 @@ pub enum Error {
     /// Received an unexpected message type from the device.
     #[error("received unexpected message type: {0:?}")]
     UnexpectedMessageType(protos::MessageType), //TODO(stevenroose) type alias
+    /// Received an unexpected message type from the device.
+    #[error("received unexpected message type: {0:?}, raw message returned")]
+    UnhandledMessage(protos::MessageType, Vec<u8>),
+    /// get struct type from eip712 types faild.
+    #[error("eip712 err: {0}")]
+    Eip712Err(String),
     /// Error reading or writing protobuf messages.
     #[error(transparent)]
     Protobuf(#[from] protobuf::Error),

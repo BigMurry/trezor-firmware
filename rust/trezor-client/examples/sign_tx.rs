@@ -11,7 +11,7 @@ fn handle_interaction<T, R: TrezorMessage>(resp: TrezorResponse<T, R>) -> T {
     match resp {
         TrezorResponse::Ok(res) => res,
         // assering ok() returns the failure error
-        TrezorResponse::Failure(_) => resp.ok().unwrap(),
+        TrezorResponse::Failure(_) | TrezorResponse::RawResponse(_, _) => resp.ok().unwrap(),
         TrezorResponse::ButtonRequest(req) => handle_interaction(req.ack().unwrap()),
         TrezorResponse::PinMatrixRequest(req) => {
             println!("Enter PIN");

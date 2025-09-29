@@ -110,12 +110,13 @@ impl Trezor {
                     }))
                 }
                 mtype => {
+                    let payload = resp.into_payload();
                     debug!(
                         "Received unexpected msg type: {:?}; raw msg: {}",
                         mtype,
-                        hex::encode(resp.into_payload())
+                        hex::encode(&payload)
                     );
-                    Err(Error::UnexpectedMessageType(mtype))
+                    Ok(TrezorResponse::RawResponse(mtype, payload))
                 }
             }
         }

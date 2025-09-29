@@ -6,6 +6,7 @@ use trezor_client::{Error, TrezorMessage, TrezorResponse};
 fn handle_interaction<T, R: TrezorMessage>(resp: TrezorResponse<T, R>) -> Result<T, Error> {
     match resp {
         TrezorResponse::Ok(res) => Ok(res),
+        TrezorResponse::RawResponse(mtype, raw_msg) => Err(Error::UnhandledMessage(mtype, raw_msg)),
         TrezorResponse::Failure(_) => resp.ok(), // assering ok() returns the failure error
         TrezorResponse::ButtonRequest(req) => handle_interaction(req.ack()?),
         TrezorResponse::PinMatrixRequest(req) => {

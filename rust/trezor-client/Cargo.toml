@@ -51,6 +51,11 @@ tracing = "0.1"
 bitcoin = { version = "0.32", optional = true }
 unicode-normalization = { version = "0.1.22", optional = true }
 
+serde = { version = "1.0" }
+serde_json = { version = "1.0" }
+alloy-primitives = { version = "1.4.0", features = ["serde"] }
+paste = { version = "1.0" }
+
 [dev-dependencies]
 tracing-subscriber = "0.3"
 serial_test = "3"
