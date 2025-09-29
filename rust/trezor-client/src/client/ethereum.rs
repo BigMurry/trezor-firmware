@@ -1,5 +1,6 @@
 use alloy_primitives::Address;
 use paste::paste;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 use super::{handle_interaction, Trezor};
@@ -34,6 +35,7 @@ pub struct Signature {
     pub v: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct NameType {
     pub name: String,
     pub r#type: String,
