@@ -400,9 +400,10 @@ impl Trezor {
                 Ok(rep) => {
                     debug!("712 ty ack: {}", &rep.name());
                     let req = data.get_712_struct_ty_ack(rep.name())?;
-                    resp = self
-                        .call(req, Box::new(|_, m: protos::EthereumTypedDataStructRequest| Ok(m)))?
-                        .ok();
+                    resp = handle_interaction(self.call(
+                        req,
+                        Box::new(|_, m: protos::EthereumTypedDataStructRequest| Ok(m)),
+                    )?);
                 }
                 Err(Error::UnhandledMessage(
                     MessageType::MessageType_EthereumTypedDataValueRequest,
@@ -429,9 +430,10 @@ impl Trezor {
                 Ok(rep) => {
                     debug!("712 data value ack: {:?}", &rep.member_path);
                     let req = data.get_712_struct_value_ack(&rep.member_path)?;
-                    value_resp = self
-                        .call(req, Box::new(|_, m: protos::EthereumTypedDataValueRequest| Ok(m)))?
-                        .ok();
+                    value_resp = handle_interaction(self.call(
+                        req,
+                        Box::new(|_, m: protos::EthereumTypedDataValueRequest| Ok(m)),
+                    )?);
                 }
                 Err(Error::UnhandledMessage(
                     MessageType::MessageType_EthereumTypedDataSignature,
