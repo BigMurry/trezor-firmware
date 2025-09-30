@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 
 use super::{handle_interaction, Trezor};
 use crate::{
+    debug,
     error::Result,
     protos::{
         self,
@@ -177,8 +178,10 @@ impl Eip712TypedData {
             .get(struct_name)
             .ok_or(Error::Eip712Err(format!("struct with name: {struct_name} not found")))?;
         for field in struct_tys.iter() {
+            debug!("712 get struct field ty ack: {}, {}", &field.name, &field.r#type);
             let mut member = protos::ethereum_typed_data_struct_ack::EthereumStructMember::new();
             let field_type = self.get_eip712_field_type(&field.r#type)?;
+            debug!("712 get struct field ty ack: {}, {} ok", &field.name, &field.r#type);
             member.type_ = protobuf::MessageField::some(field_type);
             member.set_name(field.name.to_owned());
             ack.members.push(member);
@@ -204,6 +207,7 @@ impl Eip712TypedData {
             ));
         };
 
+        debug!("712 get struct field value ack member path scan...");
         for idx in member_path[1..].iter() {
             if member_data.is_object() {
                 let member_def = self
@@ -228,13 +232,16 @@ impl Eip712TypedData {
             }
         }
 
+        debug!("712 get struct field value ack: {}, {:?} ok", &member_type, &member_data);
         let data = if member_data.is_array() {
             let size = member_data.as_array().unwrap().len() as u16;
             size.to_be_bytes().to_vec()
         } else {
+            debug!("712 get struct field value ack: encode_data");
             encode_data(member_data.clone(), member_type)?
         };
 
+        debug!("712 get struct field value ack: encode_data done");
         let mut req = protos::EthereumTypedDataValueAck::new();
         req.set_value(data);
         Ok(req)
@@ -391,6 +398,7 @@ impl Trezor {
         let value_request = loop {
             match resp {
                 Ok(rep) => {
+                    debug!("712 ty ack: {}", &rep.name());
                     let req = data.get_712_struct_ty_ack(rep.name())?;
                     resp = self
                         .call(req, Box::new(|_, m: protos::EthereumTypedDataStructRequest| Ok(m)))?
@@ -400,19 +408,26 @@ impl Trezor {
                     MessageType::MessageType_EthereumTypedDataValueRequest,
                     raw,
                 )) => {
+                    debug!("712 ty ack unhandle msg");
                     break raw;
                 }
-                Err(err) => return Err(err),
+                Err(err) => {
+                    debug!("712 ty ack unknown error: {:?}", &err);
+                    return Err(err);
+                }
             }
         };
 
+        debug!("712 try parse data value req");
         let mut value_resp: Result<protos::EthereumTypedDataValueRequest> =
             protobuf::Message::parse_from_bytes(&value_request)
                 .map_err(|_| Error::Eip712Err("invalid eip712 value req".to_owned()));
 
+        debug!("712 try parse data value req: ok");
         let sig_bytes = loop {
             match value_resp {
                 Ok(rep) => {
+                    debug!("712 data value ack: {:?}", &rep.member_path);
                     let req = data.get_712_struct_value_ack(&rep.member_path)?;
                     value_resp = self
                         .call(req, Box::new(|_, m: protos::EthereumTypedDataValueRequest| Ok(m)))?
@@ -422,18 +437,25 @@ impl Trezor {
                     MessageType::MessageType_EthereumTypedDataSignature,
                     raw,
                 )) => {
+                    debug!("712 data value unhandle msg");
                     break raw;
                 }
-                Err(err) => return Err(err),
+                Err(err) => {
+                    debug!("712 value ack unknown error: {:?}", &err);
+                    return Err(err);
+                }
             }
         };
 
+        debug!("712 try parse signature value req");
         let sig: protos::EthereumTypedDataSignature =
             protobuf::Message::parse_from_bytes(&sig_bytes)
                 .map_err(|_| Error::Eip712Err("invalid eip127 final signature type".to_owned()))?;
+        debug!("712 try parse signature value req: ok");
 
         let signature = sig.signature();
         if signature.len() != 65 {
+            debug!("712 signature invalid: {:?}", &signature);
             return Err(Error::MalformedSignature);
         }
         let r = signature[0..32].try_into().unwrap();
