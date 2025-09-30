@@ -83,7 +83,7 @@ fn encode_data(value: serde_json::Value, type_name: &str) -> Result<Vec<u8>> {
         value.as_bytes().to_vec()
     } else if type_name.starts_with("int") || type_name.starts_with("uint") {
         let int_size = get_int_size(type_name)?;
-        serde_number_to_bytes(int_size, value, type_name.starts_with("int"))?
+        serde_number_to_bytes(int_size * 8, value, type_name.starts_with("int"))?
     } else if type_name == "bool" {
         let value = serde_json::from_value::<bool>(value)
             .map_err(|_| Error::Eip712Err("invalid json bool format".to_owned()))?
@@ -241,7 +241,7 @@ impl Eip712TypedData {
             encode_data(member_data.clone(), member_type)?
         };
 
-        debug!("712 get struct field value ack: encode_data done");
+        debug!("712 get struct field value ack: encode_data done: {:?}", &data);
         let mut req = protos::EthereumTypedDataValueAck::new();
         req.set_value(data);
         Ok(req)
@@ -478,4 +478,18 @@ fn convert_signature(resp: &EthereumTxRequest, chain_id: Option<u64>) -> Result<
     let r = resp.signature_r().try_into().map_err(|_| Error::MalformedSignature)?;
     let s = resp.signature_s().try_into().map_err(|_| Error::MalformedSignature)?;
     Ok(Signature { r, s, v })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy_primitives::U256;
+
+    #[test]
+    fn test_serialize() {
+        let chain_id: U256 = "1".parse().unwrap();
+        let chain_id_v = serde_json::to_value(chain_id).unwrap();
+        let bytes = encode_data(chain_id_v, "uint256").unwrap();
+        println!("{bytes:?}",);
+    }
 }
